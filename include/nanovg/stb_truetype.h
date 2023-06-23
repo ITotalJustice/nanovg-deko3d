@@ -4487,32 +4487,32 @@ static float stbtt__cuberoot( float x )
 // x^3 + c*x^2 + b*x + a = 0
 static int stbtt__solve_cubic(float a, float b, float c, float* r)
 {
-   float s = -a / 3;
-   float p = b - a*a / 3;
-   float q = a * (2*a*a - 9*b) / 27 + c;
+	float s = -a / 3;
+	float p = b - a*a / 3;
+	float q = a * (2*a*a - 9*b) / 27 + c;
    float p3 = p*p*p;
-   float d = q*q + 4*p3 / 27;
-   if (d >= 0) {
-      float z = (float) STBTT_sqrt(d);
-      float u = (-q + z) / 2;
-      float v = (-q - z) / 2;
-      u = stbtt__cuberoot(u);
-      v = stbtt__cuberoot(v);
-      r[0] = s + u + v;
-      return 1;
-   } else {
-      float u = (float) STBTT_sqrt(-p/3);
-      float v = (float) STBTT_acos(-STBTT_sqrt(-27/p3) * q / 2) / 3; // p3 must be negative, since d is negative
-      float m = (float) STBTT_cos(v);
+	float d = q*q + 4*p3 / 27;
+	if (d >= 0) {
+		float z = (float) STBTT_sqrt(d);
+		float u = (-q + z) / 2;
+		float v = (-q - z) / 2;
+		u = stbtt__cuberoot(u);
+		v = stbtt__cuberoot(v);
+		r[0] = s + u + v;
+		return 1;
+	} else {
+	   float u = (float) STBTT_sqrt(-p/3);
+	   float v = (float) STBTT_acos(-STBTT_sqrt(-27/p3) * q / 2) / 3; // p3 must be negative, since d is negative
+	   float m = (float) STBTT_cos(v);
       float n = (float) STBTT_cos(v-3.141592/2)*1.732050808f;
-      r[0] = s + u * 2 * m;
-      r[1] = s - u * (m + n);
-      r[2] = s - u * (m - n);
+	   r[0] = s + u * 2 * m;
+	   r[1] = s - u * (m + n);
+	   r[2] = s - u * (m - n);
 
       //STBTT_assert( STBTT_fabs(((r[0]+a)*r[0]+b)*r[0]+c) < 0.05f);  // these asserts may not be safe at all scales, though they're in bezier t parameter units so maybe?
       //STBTT_assert( STBTT_fabs(((r[1]+a)*r[1]+b)*r[1]+c) < 0.05f);
       //STBTT_assert( STBTT_fabs(((r[2]+a)*r[2]+b)*r[2]+c) < 0.05f);
-      return 3;
+   	return 3;
    }
 }
 
@@ -4627,7 +4627,7 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
                      float ax = x1-x0, ay = y1-y0;
                      float bx = x0 - 2*x1 + x2, by = y0 - 2*y1 + y2;
                      float mx = x0 - sx, my = y0 - sy;
-                     float res[3],px,py,t,it;
+                     float res[3] = {0},px,py,t,it;
                      float a_inv = precompute[i];
                      if (a_inv == 0.0) { // if a_inv is 0, it's 2nd degree so use quadratic formula
                         float a = 3*(ax*bx + ay*by);

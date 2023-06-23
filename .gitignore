@@ -91,3 +91,6 @@ sept/sept-secondary/KEYS.py
 
 **/out
 **/build
+
+release/
+lib/

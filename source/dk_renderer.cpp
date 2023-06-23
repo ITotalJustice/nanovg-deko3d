@@ -2,7 +2,6 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <switch.h>
@@ -400,6 +399,10 @@ namespace nvg {
     }
 
     int DkRenderer::Create(DKNVGcontext &ctx) {
+        if (R_FAILED(romfsInit())) {
+            return 0;
+        }
+
         m_vertex_shader.load(m_code_mem_pool, "romfs:/shaders/fill_vsh.dksh");
 
         /* Load the appropriate fragment shader depending on whether AA is enabled. */
@@ -408,6 +411,8 @@ namespace nvg {
         } else {
             m_fragment_shader.load(m_code_mem_pool, "romfs:/shaders/fill_fsh.dksh");
         }
+
+        romfsExit();
 
         /* Set the size of fragment uniforms. */
         ctx.fragSize = FragmentUniformSize;
