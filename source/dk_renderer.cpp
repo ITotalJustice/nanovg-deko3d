@@ -497,6 +497,11 @@ namespace nvg {
         return nullptr;
     }
 
+    void DkRenderer::UpdateViewSize(unsigned int view_width, unsigned int view_height) {
+        m_view_width = view_width;
+        m_view_height = view_height;
+    }
+
     void DkRenderer::Flush(DKNVGcontext &ctx) {
         if (ctx.ncalls > 0) {
             /* Prepare dynamic command buffer. */

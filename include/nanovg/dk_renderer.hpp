@@ -201,6 +201,7 @@ namespace nvg {
             int UpdateTexture(const DKNVGcontext &ctx, int id, int x, int y, int w, int h, const u8 *data);
             int GetTextureSize(const DKNVGcontext &ctx, int id, int *w, int *h);
             const DKNVGtextureDescriptor *GetTextureDescriptor(const DKNVGcontext &ctx, int id);
+            void UpdateViewSize(unsigned int view_width, unsigned int view_height);
 
             void Flush(DKNVGcontext &ctx);
     };
