@@ -27,7 +27,9 @@
 
 #ifndef NVG_NO_STB
 #define STB_IMAGE_IMPLEMENTATION
-// #define STB_IMAGE_STATIC
+#if defined(NANOVG_STBI_STATIC)
+#define STB_IMAGE_STATIC
+#endif
 #include "stb_image.h"
 #endif
 
