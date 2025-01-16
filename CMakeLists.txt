@@ -12,8 +12,19 @@ option(NANOVG_NO_GIF OFF "toggle build option for stbi")
 option(NANOVG_NO_HDR OFF "toggle build option for stbi")
 option(NANOVG_NO_PIC OFF "toggle build option for stbi")
 option(NANOVG_NO_PNM OFF "toggle build option for stbi")
-option(NANOVG_STBI_STATIC ON "make stbi static")
-option(NANOVG_STBTT_STATIC ON "make stbtt static")
+
+include(FetchContent)
+set(FETCHCONTENT_QUIET FALSE)
+
+FetchContent_Declare(stb_nanovg
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG 5c20573
+)
+
+FetchContent_MakeAvailable(stb_nanovg)
+
+add_library(stb_nanovg INTERFACE)
+target_include_directories(stb_nanovg INTERFACE ${stb_nanovg_SOURCE_DIR})
 
 add_library(nanovg
     source/framework/CIntrusiveTree.cpp
@@ -88,6 +99,7 @@ endif()
 
 target_link_libraries(nanovg PRIVATE
     ${deko3d_lib}
+    stb_nanovg
 )
 
 target_include_directories(nanovg PRIVATE
