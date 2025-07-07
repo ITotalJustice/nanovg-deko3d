@@ -119,6 +119,25 @@ struct DKNVGcontext {
 
 namespace nvg {
 
+    struct Test {
+        ~Test();
+
+        CMemPool::Handle tempimgmem{};
+        CMemPool::Handle tempcmdmem{};
+        dk::Fence fence{};
+    };
+
+    // hack to avoid waiting for the queue to be empty when updating an image.
+    // this saves 14ms per frame (of an image being updated).
+    // the impl for this is very hacky however.
+    class HackyImageQueue {
+        private:
+            std::vector<std::unique_ptr<Test>> m_queue;
+        public:
+            void Tick();
+            Test &New();
+    };
+
     class Texture {
         private:
             const int m_id;
@@ -130,7 +149,7 @@ namespace nvg {
             Texture(int id);
             ~Texture();
 
-            void Initialize(CMemPool &image_pool, CMemPool &scratch_pool, dk::Device device, dk::Queue transfer_queue, int type, int w, int h, int image_flags, const u8 *data);
+            void Initialize(HackyImageQueue& hack_queue, CMemPool &image_pool, CMemPool &scratch_pool, dk::Device device, dk::Queue transfer_queue, int type, int w, int h, int image_flags, const u8 *data);
             void Update(CMemPool &image_pool, CMemPool &scratch_pool, dk::Device device, dk::Queue transfer_queue, int type, int w, int h, int image_flags, const u8 *data);
 
             int GetId();
@@ -178,6 +197,8 @@ namespace nvg {
             CDescriptorSet<SamplerType_Total> m_sampler_descriptor_set;
             std::array<int, MaxImages> m_image_descriptor_mappings;
             int m_last_image_descriptor = 0;
+
+            HackyImageQueue m_hack_queue;
 
             int AcquireImageDescriptor(std::shared_ptr<Texture> texture, int image);
             void FreeImageDescriptor(int image);

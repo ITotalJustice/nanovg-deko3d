@@ -5,6 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <switch.h>
+#include <algorithm>
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES /* Enforces GLSL std140/std430 alignment rules for glm types. */
 #define GLM_FORCE_INTRINSICS               /* Enables usage of SIMD CPU instructions (requiring the above as well). */
@@ -25,32 +26,47 @@ namespace nvg {
             glm::vec2 size;
         };
 
-        void UpdateImage(dk::Image &image, CMemPool &scratchPool, dk::Device device, dk::Queue transferQueue, int type, int x, int y, int w, int h, const u8 *data) {
+        void UpdateImage(HackyImageQueue& hack_queue, dk::Image &image, CMemPool &scratchPool, dk::Device device, dk::Queue transferQueue, int type, int x, int y, int w, int h, const u8 *data) {
             /* Do not proceed if no data is provided upfront. */
             if (data == nullptr) {
                 return;
             }
 
+            auto& test = hack_queue.New();
+
             /* Allocate memory from the pool for the image. */
             const size_t imageSize = type == NVG_TEXTURE_RGBA ? w * h * 4 : w * h;
-            CMemPool::Handle tempimgmem = scratchPool.allocate(imageSize, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT);
+            test.tempimgmem = scratchPool.allocate(imageSize, DK_IMAGE_LINEAR_STRIDE_ALIGNMENT);
+            auto& tempimgmem = test.tempimgmem;
             memcpy(tempimgmem.getCpuAddr(), data, imageSize);
 
             dk::UniqueCmdBuf tempcmdbuf = dk::CmdBufMaker{device}.create();
-            CMemPool::Handle tempcmdmem = scratchPool.allocate(DK_MEMBLOCK_ALIGNMENT);
+            tempcmdbuf.signalFence(test.fence, false);
+            test.tempcmdmem = scratchPool.allocate(DK_MEMBLOCK_ALIGNMENT);
+            auto& tempcmdmem = test.tempcmdmem;
             tempcmdbuf.addMemory(tempcmdmem.getMemBlock(), tempcmdmem.getOffset(), tempcmdmem.getSize());
 
             dk::ImageView imageView{image};
             tempcmdbuf.copyBufferToImage({ tempimgmem.getGpuAddr() }, imageView, { static_cast<uint32_t>(x), static_cast<uint32_t>(y), 0, static_cast<uint32_t>(w), static_cast<uint32_t>(h), 1 });
-
+            // tempcmdbuf.pushData(image.getGpuAddr(), data, imageSize);
             transferQueue.submitCommands(tempcmdbuf.finishList());
-            transferQueue.waitIdle();
-
-            /* Destroy temp mem. */
-            tempcmdmem.destroy();
-            tempimgmem.destroy();
         }
 
+    }
+
+    Test::~Test() {
+        tempcmdmem.destroy();
+        tempimgmem.destroy();
+    }
+
+    void HackyImageQueue::Tick() {
+        m_queue.erase(std::remove_if(m_queue.begin(), m_queue.end(), [](auto& e){
+            return R_SUCCEEDED(e->fence.wait(0));
+        }), m_queue.end());
+    }
+
+    Test &HackyImageQueue::New() {
+        return *m_queue.emplace_back(std::make_unique<Test>());
     }
 
     Texture::Texture(int id) : m_id(id) { /* ... */ }
@@ -59,7 +75,7 @@ namespace nvg {
         m_image_mem.destroy();
     }
 
-    void Texture::Initialize(CMemPool &image_pool, CMemPool &scratch_pool, dk::Device device, dk::Queue queue, int type, int w, int h, int image_flags, const u8 *data) {
+    void Texture::Initialize(HackyImageQueue& hack_queue, CMemPool &image_pool, CMemPool &scratch_pool, dk::Device device, dk::Queue queue, int type, int w, int h, int image_flags, const u8 *data) {
         m_texture_descriptor = {
             .width = w,
             .height = h,
@@ -84,7 +100,7 @@ namespace nvg {
 
         /* Only update the image if the data isn't null. */
         if (data != nullptr) {
-            UpdateImage(m_image, scratch_pool, device, queue, type, 0, 0, w, h, data);
+            UpdateImage(hack_queue, m_image, scratch_pool, device, queue, type, 0, 0, w, h, data);
         }
     }
 
@@ -432,7 +448,7 @@ namespace nvg {
     int DkRenderer::CreateTexture(const DKNVGcontext &ctx, int type, int w, int h, int image_flags, const unsigned char* data) {
         const auto texture_id = m_next_texture_id++;
         auto texture = std::make_shared<Texture>(texture_id);
-        texture->Initialize(m_image_mem_pool, m_data_mem_pool, m_device, m_queue, type, w, h, image_flags, data);
+        texture->Initialize(m_hack_queue, m_image_mem_pool, m_data_mem_pool, m_device, m_queue, type, w, h, image_flags, data);
         m_textures.push_back(texture);
         return texture->GetId();
     }
@@ -472,7 +488,7 @@ namespace nvg {
         x = 0;
         w = tex_desc.width;
 
-        UpdateImage(texture->GetImage(), m_data_mem_pool, m_device, m_queue, tex_desc.type, x, y, w, h, data);
+        UpdateImage(m_hack_queue, texture->GetImage(), m_data_mem_pool, m_device, m_queue, tex_desc.type, x, y, w, h, data);
         return 1;
     }
 
@@ -550,6 +566,7 @@ namespace nvg {
         ctx.npaths = 0;
         ctx.ncalls = 0;
         ctx.nuniforms = 0;
+        m_hack_queue.Tick();
     }
 
 }
