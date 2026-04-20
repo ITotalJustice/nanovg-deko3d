@@ -13,6 +13,21 @@
 namespace nvg {
 
     namespace {
+        /* Embedded shader binaries */
+        constexpr unsigned char fill_vsh_data[] = {
+#embed "fill_vsh.dksh"
+        };
+        constexpr size_t fill_vsh_data_size = sizeof(fill_vsh_data);
+
+        constexpr unsigned char fill_fsh_data[] = {
+#embed "fill_fsh.dksh"
+        };
+        constexpr size_t fill_fsh_data_size = sizeof(fill_fsh_data);
+
+        constexpr unsigned char fill_aa_fsh_data[] = {
+#embed "fill_aa_fsh.dksh"
+        };
+        constexpr size_t fill_aa_fsh_data_size = sizeof(fill_aa_fsh_data);
 
         constexpr std::array VertexBufferState = { DkVtxBufferState{sizeof(NVGvertex), 0}, };
 
@@ -399,20 +414,21 @@ namespace nvg {
     }
 
     int DkRenderer::Create(DKNVGcontext &ctx) {
-        if (R_FAILED(romfsInit())) {
+        /* Load shaders from embedded data */
+        if (!m_vertex_shader.loadFromMemory(m_code_mem_pool, fill_vsh_data, fill_vsh_data_size)) {
             return 0;
         }
 
-        m_vertex_shader.load(m_code_mem_pool, "romfs:/shaders/fill_vsh.dksh");
-
         /* Load the appropriate fragment shader depending on whether AA is enabled. */
         if (ctx.flags & NVG_ANTIALIAS) {
-            m_fragment_shader.load(m_code_mem_pool, "romfs:/shaders/fill_aa_fsh.dksh");
+            if (!m_fragment_shader.loadFromMemory(m_code_mem_pool, fill_aa_fsh_data, fill_aa_fsh_data_size)) {
+                return 0;
+            }
         } else {
-            m_fragment_shader.load(m_code_mem_pool, "romfs:/shaders/fill_fsh.dksh");
+            if (!m_fragment_shader.loadFromMemory(m_code_mem_pool, fill_fsh_data, fill_fsh_data_size)) {
+                return 0;
+            }
         }
-
-        romfsExit();
 
         /* Set the size of fragment uniforms. */
         ctx.fragSize = FragmentUniformSize;

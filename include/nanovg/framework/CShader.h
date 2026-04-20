@@ -28,4 +28,5 @@ public:
     }
 
     bool load(CMemPool& pool, const char* path);
+    bool loadFromMemory(CMemPool& pool, const uint8_t* data, size_t size);
 };

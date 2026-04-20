@@ -1,5 +1,17 @@
 cmake_minimum_required(VERSION 3.13)
 
+if (NOT DEFINED ENV{DEVKITPRO})
+    message(FATAL_ERROR "DEVKITPRO is not defined!")
+endif()
+
+if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if (EXISTS $ENV{DEVKITPRO}/cmake/Switch.cmake)
+        set(CMAKE_TOOLCHAIN_FILE $ENV{DEVKITPRO}/cmake/Switch.cmake)
+    else()
+        message(FATAL_ERROR "please run 'sudo pacman -S switch-cmake`")
+    endif()
+endif()
+
 project(nanovg LANGUAGES C CXX)
 
 option(NANOVG_DEBUG OFF "link against deko3dd")
@@ -18,7 +30,7 @@ set(FETCHCONTENT_QUIET FALSE)
 
 FetchContent_Declare(stb_nanovg
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG 5c20573
+    GIT_TAG 31c1ad3
 )
 
 FetchContent_MakeAvailable(stb_nanovg)
@@ -83,7 +95,7 @@ endif()
 set_target_properties(nanovg PROPERTIES
     C_STANDARD 99
     C_EXTENSIONS ON
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_EXTENSIONS ON
 )
 
@@ -109,6 +121,13 @@ target_include_directories(nanovg PRIVATE
     ${glm_inc}
 )
 
+target_compile_options(nanovg PRIVATE
+    --embed-dir=${CMAKE_CURRENT_BINARY_DIR}
+)
+
 nx_add_shader_program(fill_aa_fsh shaders/fill_aa_fsh.glsl frag)
 nx_add_shader_program(fill_fsh shaders/fill_fsh.glsl frag)
 nx_add_shader_program(fill_vsh shaders/fill_vsh.glsl vert)
+
+# Make sure DKSH files are built before nanovg library
+add_dependencies(nanovg fill_vsh fill_fsh fill_aa_fsh)
