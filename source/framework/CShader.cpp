@@ -78,14 +78,14 @@ bool CShader::loadFromMemory(CMemPool& pool, const uint8_t* data, size_t size)
         return false;
 
     /* Copy control data */
-    memcpy(ctrlmem, reinterpret_cast<const uint8_t*>(data) + hdr->header_sz, hdr->control_sz);
+    memcpy(ctrlmem, reinterpret_cast<const uint8_t*>(data), hdr->control_sz);
 
     m_codemem = pool.allocate(hdr->code_sz, DK_SHADER_CODE_ALIGNMENT);
     if (!m_codemem)
         goto _fail;
 
     /* Copy code data */
-    memcpy(m_codemem.getCpuAddr(), reinterpret_cast<const uint8_t*>(data) + hdr->header_sz + hdr->control_sz, hdr->code_sz);
+    memcpy(m_codemem.getCpuAddr(), reinterpret_cast<const uint8_t*>(data) + hdr->control_sz, hdr->code_sz);
 
     dk::ShaderMaker{m_codemem.getMemBlock(), m_codemem.getOffset()}
         .setControl(ctrlmem)
